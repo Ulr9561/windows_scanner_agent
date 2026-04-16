@@ -38,6 +38,56 @@ L'API ecoute par defaut sur:
 http://127.0.0.1:18765
 ```
 
+## Packaging / Tray
+
+Le mode deployable utilisateur final repose sur:
+- `LocalScanAgent.Host.exe`
+- `LocalScanAgent.Tray.exe`
+- un installateur Inno Setup
+
+### Staging du package
+
+Si le host peut encore etre publie localement:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Publish-Installer.ps1 -Version 0.1.0 -SkipInstaller
+```
+
+Si le SDK local bloque sur `MSB4276`, reutiliser un host deja publie:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Publish-Installer.ps1 `
+  -Version 0.1.0 `
+  -HostPublishDir .\publish\LocalScanAgent-win-x64 `
+  -SkipInstaller
+```
+
+Verifier ensuite:
+- `artifacts\installer\app\LocalScanAgent.Tray.exe`
+- `artifacts\installer\app\host\LocalScanAgent.Host.exe`
+
+### Build du Setup.exe
+
+Prerequis supplementaire:
+- Inno Setup installe avec `iscc.exe` disponible
+
+Commande:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Publish-Installer.ps1 -Version 0.1.0
+```
+
+Sortie attendue:
+- `artifacts\installer\output\LocalScanAgentSetup-0.1.0.exe`
+
+### Verification manuelle de la tray
+
+Apres installation:
+- verifier qu'une icone tray `Local Scan Agent` apparait
+- verifier que le menu permet `Demarrer`, `Arreter`, `Redemarrer`
+- verifier que `GET /health` repond une fois la tray lancee
+- verifier que la fermeture via `Quitter` arrete aussi le host
+
 ## Test `GET /health`
 
 ```powershell

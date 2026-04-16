@@ -84,6 +84,23 @@ Champs sensibles:
 - `Cors.AllowedOrigins`
 - `Logging.Path`
 
+## Packaging Windows
+
+Le repo embarque maintenant une couche poste utilisateur:
+- `src/LocalScanAgent.Tray`: tray Windows qui demarre, arrete et redemarre le host
+- `scripts/Publish-Installer.ps1`: staging + build installateur
+- `installer/LocalScanAgent.iss`: script Inno Setup
+
+Disposition cible installee:
+- `%LocalAppData%\Programs\LocalScanAgent\LocalScanAgent.Tray.exe`
+- `%LocalAppData%\Programs\LocalScanAgent\host\LocalScanAgent.Host.exe`
+
+Comportement attendu:
+- la tray lance le host au demarrage
+- la tray surveille `GET /health`
+- la tray peut ouvrir le dossier d'installation et les logs
+- `Quitter` stoppe aussi le host
+
 ## Drivers et etat reel
 
 Etat verifie sur le poste actuel:
@@ -104,5 +121,5 @@ Si le frontend tourne via devtunnel:
 - ameliorer encore la qualite documentaire
 - valider le comportement TWAIN si un pilote est installe
 - ajouter les tests utiles
-- finaliser la documentation de deploiement
-- preparer le packaging Windows `dotnet publish`
+- valider le setup Inno Setup sur une machine ou `iscc.exe` est installe
+- reparer ou contourner proprement le SDK local si `dotnet publish` du host bloque encore sur `MSB4276`

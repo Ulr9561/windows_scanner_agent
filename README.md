@@ -23,6 +23,7 @@ L'agent ne doit pas:
 - `src/LocalScanAgent.Application`: orchestration metier et abstractions
 - `src/LocalScanAgent.Infrastructure`: scan fake, scan reel NAPS2, export PDF, logging
 - `src/LocalScanAgent.Host`: API ASP.NET Core locale, config, CORS, logs
+- `src/LocalScanAgent.Tray`: application Windows tray qui lance et surveille le host local
 - `tests/LocalScanAgent.Tests`: tests du projet
 
 ## Endpoints
@@ -133,6 +134,67 @@ L'API ecoute par defaut sur:
 ```text
 http://127.0.0.1:18765
 ```
+
+## Packaging Windows
+
+Le livrable utilisateur final vise maintenant ce schema:
+- `LocalScanAgent.Tray.exe` dans la zone de notification Windows
+- `LocalScanAgent.Host.exe` lance en arriere-plan par la tray
+- un installateur `Setup.exe` pour installer le tout sur un autre poste
+
+Le packaging est prepare dans:
+- `scripts/Publish-Installer.ps1`
+- `installer/LocalScanAgent.iss`
+
+### Generer le staging de l'installateur
+
+Si le `publish` du host fonctionne normalement sur ta machine:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Publish-Installer.ps1 -Version 0.1.0 -SkipInstaller
+```
+
+Si ton SDK local a encore le probleme `MSB4276` mais que tu as deja un host publie valide:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Publish-Installer.ps1 `
+  -Version 0.1.0 `
+  -HostPublishDir .\publish\LocalScanAgent-win-x64 `
+  -SkipInstaller
+```
+
+Le contenu pret a etre empaquete sera dans:
+
+```text
+artifacts\installer\app
+```
+
+### Generer le Setup.exe
+
+Installer d'abord Inno Setup sur le poste de build, puis lancer:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Publish-Installer.ps1 -Version 0.1.0
+```
+
+Sortie attendue:
+
+```text
+artifacts\installer\output\LocalScanAgentSetup-0.1.0.exe
+```
+
+### Ce que fait l'installateur
+
+- installe l'application dans `%LocalAppData%\Programs\LocalScanAgent`
+- ajoute un raccourci menu demarrer
+- peut ajouter le lancement automatique a l'ouverture de session
+- lance la tray app a la fin de l'installation
+
+### Ce que l'installateur ne fait pas
+
+- n'installe pas les pilotes constructeur du scanner
+- ne configure pas automatiquement TWAIN/WIA
+- ne remplace pas la verification materielle sur le poste cible
 
 ## Scanner valide jusqu'ici
 

@@ -4,6 +4,7 @@
     <Project Path="src/LocalScanAgent.Contracts/LocalScanAgent.Contracts.csproj" />
     <Project Path="src/LocalScanAgent.Host/LocalScanAgent.Host.csproj" />
     <Project Path="src/LocalScanAgent.Infrastructure/LocalScanAgent.Infrastructure.csproj" />
+    <Project Path="src/LocalScanAgent.Tray/LocalScanAgent.Tray.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/LocalScanAgent.Tests/LocalScanAgent.Tests.csproj" />
