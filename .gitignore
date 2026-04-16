@@ -1,0 +1,90 @@
+# OS / shell noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+# Editor folders and local workspace state
+.idea/
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.code-workspace
+
+# Visual Studio / Rider user state
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# .NET build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+artifacts/
+TestResults/
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+*.nuspec
+project.lock.json
+project.fragment.lock.json
+artifacts/
+.nuget/
+
+# Coverage / test tooling
+coverage/
+coverage-*.xml
+coverage-*.json
+coverage.info
+*.coverage
+*.coveragexml
+*.trx
+*.opencover.xml
+lcov.info
+
+# Logs
+logs/
+*.log
+*.svclog
+
+# ASP.NET / local runtime files
+appsettings.Local.json
+appsettings.*.local.json
+Properties/ServiceDependencies/
+Properties/serviceDependencies.*.json
+
+# Publish outputs
+publish/
+out/
+
+# Local scan agent runtime artifacts
+temp/
+tmp/
+scans/
+
+# Generated package caches occasionally created inside repos
+.packages/
+
+# Tool-specific / generated files
+BenchmarkDotNet.Artifacts/
+
+# Keep placeholder files when needed
+!.gitkeep

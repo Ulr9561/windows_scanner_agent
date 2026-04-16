@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LocalScanAgent.Application/LocalScanAgent.Application.csproj" />
+    <Project Path="src/LocalScanAgent.Contracts/LocalScanAgent.Contracts.csproj" />
+    <Project Path="src/LocalScanAgent.Host/LocalScanAgent.Host.csproj" />
+    <Project Path="src/LocalScanAgent.Infrastructure/LocalScanAgent.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LocalScanAgent.Tests/LocalScanAgent.Tests.csproj" />
+  </Folder>
+</Solution>
