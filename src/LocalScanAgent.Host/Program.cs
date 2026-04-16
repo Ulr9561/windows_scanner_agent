@@ -1,10 +1,12 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
 using LocalScanAgent.Application.Abstractions;
+using LocalScanAgent.Application.Exceptions;
 using LocalScanAgent.Application.Services;
 using LocalScanAgent.Contracts;
 using LocalScanAgent.Host.Configuration;
 using LocalScanAgent.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Serilog;
 
@@ -29,7 +31,7 @@ builder.Host.UseSerilog((context, _, configuration) =>
         .WriteTo.File(logPath, rollingInterval: RollingInterval.Day);
 });
 
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<ScanOrchestrator>(serviceProvider =>
 {
     var agentOptions = serviceProvider.GetRequiredService<IOptions<AgentOptions>>().Value;
@@ -83,24 +85,58 @@ app.MapPost("/scan/pdf", async (ScanPdfRequest request, ScanOrchestrator orchest
     {
         var result = await orchestrator.ScanToPdfAsync(request, cancellationToken);
         httpContext.Response.Headers.Append("X-Page-Count", result.PageCount.ToString());
+        httpContext.Response.Headers.Append("X-Scan-Mode", request.Mode.ToString());
 
         return Results.File(result.Content, result.ContentType, result.FileName);
     }
     catch (ArgumentOutOfRangeException exception)
     {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
+        var validationProblem = new ValidationProblemDetails(new Dictionary<string, string[]>
         {
             [exception.ParamName ?? "request"] = [exception.Message]
-        });
+        })
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Requete de scan invalide",
+            Detail = exception.Message
+        };
+        validationProblem.Extensions["errorCode"] = "validation_error";
+
+        return Results.Problem(validationProblem);
     }
     catch (NotSupportedException exception)
     {
-        return Results.Problem(statusCode: StatusCodes.Status501NotImplemented, title: exception.Message);
+        return CreateProblem(StatusCodes.Status501NotImplemented, "Fonction non implemente", exception.Message, "not_implemented");
     }
     catch (InvalidOperationException exception)
     {
-        return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: exception.Message);
+        return CreateProblem(StatusCodes.Status409Conflict, "Operation impossible", exception.Message, "invalid_operation");
+    }
+    catch (ScannerException exception)
+    {
+        var (statusCode, title) = exception switch
+        {
+            ScannerFeederEmptyException => (StatusCodes.Status409Conflict, "Chargeur vide"),
+            ScannerNotFoundException => (StatusCodes.Status404NotFound, "Scanner introuvable"),
+            ScannerUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Scanner indisponible"),
+            _ => (StatusCodes.Status422UnprocessableEntity, "Echec de numerisation")
+        };
+
+        return CreateProblem(statusCode, title, exception.Message, exception.ErrorCode);
     }
 });
 
 app.Run();
+
+static IResult CreateProblem(int statusCode, string title, string detail, string errorCode)
+{
+    var problemDetails = new ProblemDetails
+    {
+        Status = statusCode,
+        Title = title,
+        Detail = detail
+    };
+    problemDetails.Extensions["errorCode"] = errorCode;
+
+    return Results.Problem(problemDetails);
+}

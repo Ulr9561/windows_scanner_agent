@@ -10,7 +10,7 @@ public sealed record ScanPdfRequest
 
     public PaperSource PaperSource { get; init; } = PaperSource.Feeder;
 
-    public bool Duplex { get; init; } = true;
+    public bool Duplex { get; init; } = false;
 
     public ColorMode ColorMode { get; init; } = ColorMode.Grayscale;
 

@@ -4,6 +4,10 @@
     <ProjectReference Include="..\LocalScanAgent.Contracts\LocalScanAgent.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="NAPS2.Sdk" Version="1.2.1" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
