@@ -4,5 +4,5 @@ namespace LocalScanAgent.Application.Abstractions;
 
 public interface IPdfService
 {
-    byte[] CreatePdf(IReadOnlyList<ScannedPage> pages);
+    Task<byte[]> CreatePdfAsync(IReadOnlyList<ScannedPage> pages);
 }
