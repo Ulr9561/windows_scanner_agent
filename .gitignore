@@ -88,3 +88,5 @@ BenchmarkDotNet.Artifacts/
 
 # Keep placeholder files when needed
 !.gitkeep
+scan_note.pdf
+*.pdf

@@ -37,11 +37,6 @@ public sealed class ScanOrchestrator
 
         var normalizedRequest = Normalize(request);
 
-        if (normalizedRequest.Mode != ScanMode.Fake)
-        {
-            throw new NotSupportedException("Only fake scan mode is implemented in this MVP.");
-        }
-
         if (_allowOnlyOneScanAtATime && !await _scanLock.WaitAsync(0, cancellationToken))
         {
             throw new InvalidOperationException("A scan is already in progress.");
@@ -50,9 +45,8 @@ public sealed class ScanOrchestrator
         try
         {
             _logger.LogInformation(
-                "Starting scan in {Mode} mode with {PageCount} simulated pages.",
-                normalizedRequest.Mode,
-                normalizedRequest.SimulatedPages ?? DefaultSimulatedPages);
+                "Starting scan in {Mode} mode.",
+                normalizedRequest.Mode);
 
             var scannedPages = await _scanSource.ScanAsync(normalizedRequest, cancellationToken);
             var pdfBytes = _pdfService.CreatePdf(scannedPages);

@@ -1,7 +1,11 @@
 using System.Globalization;
+using System.IO;
 using System.Text;
 using LocalScanAgent.Application.Abstractions;
 using LocalScanAgent.Application.Models;
+using NAPS2.Images.ImageSharp;
+using NAPS2.Pdf;
+using NAPS2.Scan;
 
 namespace LocalScanAgent.Infrastructure.Pdf;
 
@@ -14,6 +18,41 @@ public sealed class PdfService : IPdfService
             throw new ArgumentException("At least one page is required to build a PDF.", nameof(pages));
         }
 
+        if (pages.All(page => page.Image is not null))
+        {
+            return CreateScannedImagePdf(pages);
+        }
+
+        return CreateSyntheticPdf(pages);
+    }
+
+    private static byte[] CreateScannedImagePdf(IReadOnlyList<ScannedPage> pages)
+    {
+        using var scanningContext = new ScanningContext(new ImageSharpImageContext());
+        var exporter = new PdfExporter(scanningContext);
+        using var stream = new MemoryStream();
+
+        var images = pages
+            .Select(page => page.Image)
+            .OfType<NAPS2.Images.ProcessedImage>()
+            .ToList();
+
+        try
+        {
+            exporter.Export(stream, images).GetAwaiter().GetResult();
+            return stream.ToArray();
+        }
+        finally
+        {
+            foreach (var image in images)
+            {
+                image.Dispose();
+            }
+        }
+    }
+
+    private static byte[] CreateSyntheticPdf(IReadOnlyList<ScannedPage> pages)
+    {
         var objects = new List<string>
         {
             string.Empty,
