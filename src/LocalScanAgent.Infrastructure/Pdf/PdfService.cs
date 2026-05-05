@@ -11,7 +11,7 @@ namespace LocalScanAgent.Infrastructure.Pdf;
 
 public sealed class PdfService : IPdfService
 {
-    public byte[] CreatePdf(IReadOnlyList<ScannedPage> pages)
+    public async Task<byte[]> CreatePdfAsync(IReadOnlyList<ScannedPage> pages)
     {
         if (pages.Count == 0)
         {
@@ -20,13 +20,13 @@ public sealed class PdfService : IPdfService
 
         if (pages.All(page => page.Image is not null))
         {
-            return CreateScannedImagePdf(pages);
+            return await CreateScannedImagePdfAsync(pages);
         }
 
         return CreateSyntheticPdf(pages);
     }
 
-    private static byte[] CreateScannedImagePdf(IReadOnlyList<ScannedPage> pages)
+    private static async Task<byte[]> CreateScannedImagePdfAsync(IReadOnlyList<ScannedPage> pages)
     {
         using var scanningContext = new ScanningContext(new ImageSharpImageContext());
         var exporter = new PdfExporter(scanningContext);
@@ -39,7 +39,7 @@ public sealed class PdfService : IPdfService
 
         try
         {
-            exporter.Export(stream, images).GetAwaiter().GetResult();
+            await exporter.Export(stream, images);
             return stream.ToArray();
         }
         finally

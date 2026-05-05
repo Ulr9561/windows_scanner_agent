@@ -1,12 +1,12 @@
 using System.Diagnostics;
-using System.Drawing;
 using System.Runtime.Versioning;
+using System.Text.Json;
 namespace LocalScanAgent.Tray;
 
 [SupportedOSPlatform("windows")]
 internal sealed class AgentTrayApplicationContext : ApplicationContext
 {
-    private static readonly Uri HealthUri = new("http://127.0.0.1:18765/health");
+    private static readonly Uri HealthUri = ResolveHealthUri();
 
     private readonly HttpClient _httpClient = new()
     {
@@ -35,12 +35,12 @@ internal sealed class AgentTrayApplicationContext : ApplicationContext
         _openLogsItem = new ToolStripMenuItem("Ouvrir les logs");
         _exitItem = new ToolStripMenuItem("Quitter");
 
-        _startItem.Click += async (_, _) => await StartHostAsync();
-        _restartItem.Click += async (_, _) => await RestartHostAsync();
-        _stopItem.Click += async (_, _) => await StopHostAsync();
+        _startItem.Click += async (_, _) => await SafeRunAsync(() => StartHostAsync(), "Erreur de demarrage");
+        _restartItem.Click += async (_, _) => await SafeRunAsync(RestartHostAsync, "Erreur de redemarrage");
+        _stopItem.Click += async (_, _) => await SafeRunAsync(() => StopHostAsync(), "Erreur d'arret");
         _openInstallFolderItem.Click += (_, _) => OpenFolder(AppContext.BaseDirectory);
         _openLogsItem.Click += (_, _) => OpenFolder(GetLogsDirectory());
-        _exitItem.Click += async (_, _) => await ExitAsync();
+        _exitItem.Click += async (_, _) => await SafeRunAsync(ExitAsync, "Erreur a la fermeture");
 
         var contextMenu = new ContextMenuStrip();
         contextMenu.Items.AddRange(
@@ -59,21 +59,21 @@ internal sealed class AgentTrayApplicationContext : ApplicationContext
 
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = LoadTrayIcon(),
             Text = "Local Scan Agent",
             ContextMenuStrip = contextMenu,
             Visible = true
         };
 
-        _notifyIcon.DoubleClick += async (_, _) => await RefreshStatusAsync();
+        _notifyIcon.DoubleClick += async (_, _) => await SafeRunAsync(RefreshStatusAsync, "Erreur de refresh");
 
         _statusTimer = new System.Windows.Forms.Timer
         {
             Interval = 5_000
         };
-        _statusTimer.Tick += async (_, _) => await RefreshStatusAsync();
+        _statusTimer.Tick += async (_, _) => await SafeRunAsync(RefreshStatusAsync, "Erreur de refresh");
 
-        _ = InitializeAsync();
+        _ = SafeRunAsync(InitializeAsync, "Erreur d'initialisation");
     }
 
     private async Task InitializeAsync()
@@ -81,6 +81,18 @@ internal sealed class AgentTrayApplicationContext : ApplicationContext
         await StartHostAsync(showNotification: false);
         _statusTimer.Start();
         await RefreshStatusAsync();
+    }
+
+    private async Task SafeRunAsync(Func<Task> action, string errorTitle)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            _notifyIcon.ShowBalloonTip(4000, errorTitle, ex.Message, ToolTipIcon.Error);
+        }
     }
 
     private async Task StartHostAsync(bool showNotification = true)
@@ -144,9 +156,9 @@ internal sealed class AgentTrayApplicationContext : ApplicationContext
                 process.Kill(entireProcessTree: true);
                 await process.WaitForExitAsync();
             }
-            catch
+            catch (Exception ex)
             {
-                // Best effort stop for a background process with no main window.
+                System.Diagnostics.Debug.WriteLine($"[Tray] Failed to stop host process: {ex.Message}");
             }
             finally
             {
@@ -210,9 +222,9 @@ internal sealed class AgentTrayApplicationContext : ApplicationContext
 
     private async Task<bool> WaitForHealthyAsync(TimeSpan timeout)
     {
-        var startedAt = DateTime.UtcNow;
+        var sw = Stopwatch.StartNew();
 
-        while (DateTime.UtcNow - startedAt < timeout)
+        while (sw.Elapsed < timeout)
         {
             if (await IsHealthyAsync())
             {
@@ -264,6 +276,49 @@ internal sealed class AgentTrayApplicationContext : ApplicationContext
     private static string GetLogsDirectory()
     {
         return Path.Combine(AppContext.BaseDirectory, "host", "logs");
+    }
+
+    private static Icon LoadTrayIcon()
+    {
+        var pngPath = Path.Combine(AppContext.BaseDirectory, "logo.png");
+        if (!File.Exists(pngPath))
+            return SystemIcons.Application;
+        try
+        {
+            using var bitmap = new Bitmap(pngPath);
+            return Icon.FromHandle(bitmap.GetHicon());
+        }
+        catch
+        {
+            return SystemIcons.Application;
+        }
+    }
+
+    private static Uri ResolveHealthUri()
+    {
+        const int defaultPort = 18765;
+        var port = defaultPort;
+
+        var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "host", "appsettings.json");
+        if (File.Exists(appSettingsPath))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(appSettingsPath));
+                if (doc.RootElement.TryGetProperty("Agent", out var agent) &&
+                    agent.TryGetProperty("Port", out var portElement) &&
+                    portElement.TryGetInt32(out var parsed))
+                {
+                    port = parsed;
+                }
+            }
+            catch
+            {
+                // Fall back to default port if config is unreadable.
+            }
+        }
+
+        return new Uri($"http://127.0.0.1:{port}/health");
     }
 
     protected override void ExitThreadCore()

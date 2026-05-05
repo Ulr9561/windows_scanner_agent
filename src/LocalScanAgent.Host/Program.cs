@@ -40,7 +40,9 @@ builder.Services.AddSingleton<ScanOrchestrator>(serviceProvider =>
         serviceProvider.GetRequiredService<IScanSource>(),
         serviceProvider.GetRequiredService<IPdfService>(),
         serviceProvider.GetRequiredService<IAgentLogger>(),
-        agentOptions.AllowOnlyOneScanAtATime);
+        agentOptions.AllowOnlyOneScanAtATime,
+        agentOptions.ScanQueueWaitSeconds,
+        agentOptions.ScanTimeoutSeconds);
 });
 
 var agentOptions = builder.Configuration.GetSection(AgentOptions.SectionName).Get<AgentOptions>() ?? new AgentOptions();
@@ -64,13 +66,21 @@ builder.WebHost.UseUrls($"http://{agentOptions.BindAddress}:{agentOptions.Port}"
 
 var app = builder.Build();
 
+if (corsOptions.AllowedOrigins.Length == 0)
+{
+    app.Logger.LogWarning(
+        "No CORS origins are configured (Cors:AllowedOrigins is empty). " +
+        "Browser clients will be blocked by CORS. " +
+        "Add the frontend origin to appsettings.json under Cors:AllowedOrigins.");
+}
+
 app.UseSerilogRequestLogging();
 app.UseCors(CorsPolicyName);
 
-app.MapGet("/health", () =>
+app.MapGet("/health", (ScanOrchestrator orchestrator) =>
 {
     var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.1.0";
-    return TypedResults.Ok(new HealthResponse("ok", version, ScannerState.Ready));
+    return TypedResults.Ok(new HealthResponse("ok", version, orchestrator.State));
 });
 
 app.MapGet("/devices", async (ScanOrchestrator orchestrator, CancellationToken cancellationToken) =>

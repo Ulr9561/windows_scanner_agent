@@ -1,4 +1,5 @@
 using LocalScanAgent.Application.Abstractions;
+using LocalScanAgent.Application.Exceptions;
 using LocalScanAgent.Application.Models;
 using LocalScanAgent.Contracts;
 
@@ -23,9 +24,21 @@ public sealed class FakeScanSource : IScanSource
         cancellationToken.ThrowIfCancellationRequested();
 
         var pageCount = request.SimulatedPages ?? 3;
-        var selectedDevice = string.IsNullOrWhiteSpace(request.PreferredDeviceId)
-            ? Devices[0].Id
-            : request.PreferredDeviceId;
+
+        string selectedDevice;
+        if (string.IsNullOrWhiteSpace(request.PreferredDeviceId))
+        {
+            selectedDevice = Devices[0].Id;
+        }
+        else
+        {
+            var match = Devices.FirstOrDefault(d => string.Equals(d.Id, request.PreferredDeviceId, StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+            {
+                throw new ScannerNotFoundException($"Le scanner simule '{request.PreferredDeviceId}' est introuvable.");
+            }
+            selectedDevice = match.Id;
+        }
 
         var pages = Enumerable.Range(1, pageCount)
             .Select(pageNumber => new ScannedPage(
