@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+          include-prerelease: true
+
+      - name: Extract version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          .\scripts\Publish-Installer.ps1 -Version ${{ steps.version.outputs.VERSION }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Local Scan Agent v${{ steps.version.outputs.VERSION }}"
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: artifacts/installer/output/LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe
+          body: |
+            ## Téléchargement
+
+            👉 **[LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe)**
+
+            ## Installation
+
+            1. Télécharger le fichier ci-dessus
+            2. Double-cliquer pour lancer l'installateur
+            3. Suivre les étapes → **Suivant > Suivant > Terminer**
+            4. L'agent démarre automatiquement dans la barre des tâches
+
+            > **Note :** Windows peut afficher un avertissement de sécurité au premier lancement.
+            > Cliquer sur **"Informations complémentaires"** puis **"Exécuter quand même"**.
+            > Cet avertissement disparaîtra une fois le certificat de signature obtenu.
+
+            ## Désinstallation
+
+            Panneau de configuration → Programmes → **Local Scan Agent** → Désinstaller
