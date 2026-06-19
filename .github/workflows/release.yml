@@ -38,6 +38,49 @@ jobs:
         run: |
           .\scripts\Publish-Installer.ps1 -Version ${{ steps.version.outputs.VERSION }}
 
+      - name: Build release notes body
+        id: release_notes
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $notesPath = ".github/release-notes/$tag.md"
+          $bodyPath = "artifacts/release-body.md"
+
+          if (-not (Test-Path -LiteralPath $notesPath)) {
+            throw "Missing release notes file: $notesPath. Create it from .github/release-notes/TEMPLATE.md before tagging a release."
+          }
+
+          New-Item -ItemType Directory -Path "artifacts" -Force | Out-Null
+          $notes = Get-Content -LiteralPath $notesPath -Raw
+
+          @"
+          ## Telechargement
+
+          **[LocalScanAgentSetup-$version.exe](https://github.com/${{ github.repository }}/releases/download/$tag/LocalScanAgentSetup-$version.exe)**
+
+          ## Notes de version
+
+          $notes
+
+          ## Installation
+
+          1. Telecharger le fichier ci-dessus.
+          2. Double-cliquer pour lancer l'installateur.
+          3. Suivre les etapes: **Suivant > Suivant > Terminer**.
+          4. L'agent demarre automatiquement dans la barre des taches.
+
+          > **Note :** Windows peut afficher un avertissement de securite au premier lancement.
+          > Cliquer sur **Informations complementaires** puis **Executer quand meme**.
+          > Cet avertissement disparaitra une fois le certificat de signature obtenu.
+
+          ## Desinstallation
+
+          Panneau de configuration > Programmes > **Local Scan Agent** > Desinstaller
+          "@ | Set-Content -LiteralPath $bodyPath
+
+          echo "BODY_PATH=$bodyPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -46,26 +89,4 @@ jobs:
           draft: false
           prerelease: false
           files: artifacts/installer/output/LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe
-          body: |
-            ## Telechargement
-
-            **[LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe)**
-
-            ## Notes de version
-
-            - Consulter `CHANGELOG.md` pour le detail des changements de cette version.
-
-            ## Installation
-
-            1. Telecharger le fichier ci-dessus.
-            2. Double-cliquer pour lancer l'installateur.
-            3. Suivre les etapes: **Suivant > Suivant > Terminer**.
-            4. L'agent demarre automatiquement dans la barre des taches.
-
-            > **Note :** Windows peut afficher un avertissement de securite au premier lancement.
-            > Cliquer sur **Informations complementaires** puis **Executer quand meme**.
-            > Cet avertissement disparaitra une fois le certificat de signature obtenu.
-
-            ## Desinstallation
-
-            Panneau de configuration > Programmes > **Local Scan Agent** > Desinstaller
+          body_path: ${{ steps.release_notes.outputs.BODY_PATH }}
