@@ -47,21 +47,25 @@ jobs:
           prerelease: false
           files: artifacts/installer/output/LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe
           body: |
-            ## Téléchargement
+            ## Telechargement
 
-            👉 **[LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe)**
+            **[LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/LocalScanAgentSetup-${{ steps.version.outputs.VERSION }}.exe)**
+
+            ## Notes de version
+
+            - Consulter `CHANGELOG.md` pour le detail des changements de cette version.
 
             ## Installation
 
-            1. Télécharger le fichier ci-dessus
-            2. Double-cliquer pour lancer l'installateur
-            3. Suivre les étapes → **Suivant > Suivant > Terminer**
-            4. L'agent démarre automatiquement dans la barre des tâches
+            1. Telecharger le fichier ci-dessus.
+            2. Double-cliquer pour lancer l'installateur.
+            3. Suivre les etapes: **Suivant > Suivant > Terminer**.
+            4. L'agent demarre automatiquement dans la barre des taches.
 
-            > **Note :** Windows peut afficher un avertissement de sécurité au premier lancement.
-            > Cliquer sur **"Informations complémentaires"** puis **"Exécuter quand même"**.
-            > Cet avertissement disparaîtra une fois le certificat de signature obtenu.
+            > **Note :** Windows peut afficher un avertissement de securite au premier lancement.
+            > Cliquer sur **Informations complementaires** puis **Executer quand meme**.
+            > Cet avertissement disparaitra une fois le certificat de signature obtenu.
 
-            ## Désinstallation
+            ## Desinstallation
 
-            Panneau de configuration → Programmes → **Local Scan Agent** → Désinstaller
+            Panneau de configuration > Programmes > **Local Scan Agent** > Desinstaller
